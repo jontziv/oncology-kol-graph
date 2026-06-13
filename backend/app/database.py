@@ -11,13 +11,21 @@ engine = create_engine(
     pool_recycle=280,     # recycle before Supabase pooler's 300s idle timeout
 )
 
-# Enable WAL mode for SQLite to allow concurrent reads during writes
 if _is_sqlite:
+    # Enable WAL mode for concurrent reads during writes
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_conn, _):
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+else:
+    # Supabase free tier enforces a short statement_timeout — disable it per
+    # connection so bulk ingestion isn't cancelled mid-insert.
+    @event.listens_for(engine, "connect")
+    def set_pg_timeouts(dbapi_conn, _):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("SET statement_timeout = 0")
         cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
