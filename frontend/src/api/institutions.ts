@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import type { InstitutionSummary } from "@/types";
 
+import { API_BASE } from "./config";
+
 async function fetchInstitutions(sortBy = "trial_count", state = ""): Promise<InstitutionSummary[]> {
   const params = new URLSearchParams({ sort_by: sortBy, ...(state && { state }) });
-  const res = await fetch(`/api/institutions?${params}`);
+  const res = await fetch(`${API_BASE}/api/institutions?${params}`);
   if (!res.ok) throw new Error("Failed to fetch institutions");
   return res.json();
 }

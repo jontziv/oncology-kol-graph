@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Orchestrator: runs all ingestion scripts in order, then computes scores.
 Usage:

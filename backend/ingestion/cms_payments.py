@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Pull oncology-related payments from CMS Open Payments API (SODA).
 Matches against investigators already in the DB by NPI (for real NPI rows)

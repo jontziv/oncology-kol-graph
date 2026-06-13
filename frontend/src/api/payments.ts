@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import type { PaymentRecord } from "@/types";
 
+import { API_BASE } from "./config";
+
 async function fetchAllPayments(
   page: number,
   year?: number,
@@ -14,7 +16,7 @@ async function fetchAllPayments(
     ...(company && { company }),
     ...(nature && { nature }),
   });
-  const res = await fetch(`/api/payments?${params}`);
+  const res = await fetch(`${API_BASE}/api/payments?${params}`);
   if (!res.ok) throw new Error("Failed to fetch payments");
   return res.json();
 }

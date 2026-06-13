@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Load SEER state-level lung cancer incidence/mortality data from a bundled CSV.
 CSV format: state,incidence_rate,mortality_rate,year

@@ -1,18 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --font-family-sans: "Inter", system-ui, sans-serif;
+  --color-brand: #38bdf8;
+  --color-brand-dark: #0284c7;
+}
 
 @layer base {
-  :root {
-    font-family: "Inter", system-ui, sans-serif;
-  }
-
-  * {
-    @apply border-slate-700;
-  }
-
   body {
-    @apply bg-slate-950 text-slate-100 antialiased;
+    background-color: var(--color-slate-950, #020617);
+    color: var(--color-slate-100, #f1f5f9);
+    -webkit-font-smoothing: antialiased;
   }
 
   ::-webkit-scrollbar {
@@ -20,18 +18,18 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-slate-900;
+    background: #0f172a;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-600 rounded-full;
+    background: #475569;
+    border-radius: 9999px;
   }
 }
 
 @layer utilities {
-  .text-muted {
-    @apply text-slate-400;
-  }
   .card {
-    @apply bg-slate-800 border border-slate-700 rounded-lg;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
   }
 }

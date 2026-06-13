@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import type { KOLListResponse, KOLDetail, KOLFilters } from "@/types";
+import { API_BASE } from "./config";
 
-const BASE = "/api";
+const BASE = `${API_BASE}/api`;
 
 async function fetchKOLs(
   page: number,

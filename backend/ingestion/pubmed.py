@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Pull NSCLC publications from PubMed E-utilities.
 Fuzzy-matches authors against known investigators from the DB.

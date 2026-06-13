@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Pull NSCLC trials from ClinicalTrials.gov v2 API.
 Upserts: institutions, investigators (provisional NPI), trials, trial_investigators.
@@ -159,6 +161,9 @@ def process_study(db: Session, study: dict) -> None:
     contacts_mod = proto.get("contactsLocationsModule", {})
     locations = contacts_mod.get("locations", [])
 
+    # Track (nct_id, npi) pairs added within this study to avoid intra-batch duplicates
+    seen_links: set[tuple[str, str]] = set()
+
     for loc in locations:
         loc_facility = loc.get("facility", "Unknown Institution")
         loc_city = loc.get("city")
@@ -175,6 +180,11 @@ def process_study(db: Session, study: dict) -> None:
 
             institution_id = _upsert_institution(db, loc_facility, loc_city, loc_state)
             npi = _upsert_investigator(db, inv_name, institution_id, loc_city, loc_state)
+
+            link_key = (nct_id, npi)
+            if link_key in seen_links:
+                continue
+            seen_links.add(link_key)
 
             role_label = "Principal Investigator" if role_raw == "PRINCIPAL_INVESTIGATOR" else "Sub-Investigator"
             existing_link = (
