@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ExplanationResponse } from "@/types";
+import { API_BASE } from "./config";
 
 async function fetchExplanation(npi: string, refresh = false): Promise<ExplanationResponse> {
   const params = refresh ? "?refresh=true" : "";
-  const res = await fetch(`/api/explain/${npi}${params}`);
+  const res = await fetch(`${API_BASE}/api/explain/${npi}${params}`);
   if (!res.ok) throw new Error("Failed to generate explanation");
   return res.json();
 }

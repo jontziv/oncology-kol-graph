@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: oncology-kol-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./oncology_kol.db
+      - key: CORS_ORIGINS
+        sync: false   # set this in Render dashboard to your Vercel URL
+      - key: GROQ_API_KEY
+        sync: false   # set this in Render dashboard — never commit
+      - key: NCBI_API_KEY
+        sync: false   # optional
+    plan: free
