@@ -19,11 +19,11 @@ from app import models
 # CMS Open Payments general payments dataset — uses Socrata Open Data API
 CMS_API = "https://openpaymentsdata.cms.gov/api/1/datastore/sql"
 
-# Dataset UUIDs for general payments by year (update if CMS rotates IDs)
-# These can be found at https://openpaymentsdata.cms.gov/dataset/
+# Dataset UUIDs for general payments by year
+# Find current IDs at https://openpaymentsdata.cms.gov/datasets
 DATASET_YEARS = {
-    2023: "06731e8c-e3b7-4960-a496-53a05c5f3967",
-    2022: "b1e4f1cb-b82a-4ef8-849e-1c2d28fcb5a7",
+    2023: "fb3a65aa-c901-4a38-a813-b04b00dfa2a9",
+    2022: "df01c2f8-dc1f-4e79-96cb-8208beaf143c",
 }
 
 SPECIALTY_FILTER = "oncology"

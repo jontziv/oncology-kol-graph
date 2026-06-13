@@ -94,25 +94,27 @@ def generate_rationale(
         payments_summary=payments_summary,
     )
 
-    client = Groq(api_key=settings.groq_api_key)
-    response = client.chat.completions.create(
-        model="llama3-70b-8192",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.3,
-        max_tokens=600,
-        response_format={"type": "json_object"},
-    )
-
-    content = response.choices[0].message.content or "{}"
-    result = json.loads(content)
-    return {
-        "rationale": result.get("rationale", ""),
-        "engagement_type": result.get("engagement_type", "Advisory Board"),
-        "compliance_note": result.get("compliance_note", ""),
-    }
+    try:
+        client = Groq(api_key=settings.groq_api_key)
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=600,
+            response_format={"type": "json_object"},
+        )
+        content = response.choices[0].message.content or "{}"
+        result = json.loads(content)
+        return {
+            "rationale": result.get("rationale", ""),
+            "engagement_type": result.get("engagement_type", "Advisory Board"),
+            "compliance_note": result.get("compliance_note", ""),
+        }
+    except Exception:
+        return _fallback_rationale(inv)
 
 
 def _fallback_rationale(inv: models.Investigator) -> dict[str, str]:

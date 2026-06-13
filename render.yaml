@@ -6,12 +6,17 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      # Supabase PostgreSQL connection string — set in Render dashboard
+      # Format: postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
       - key: DATABASE_URL
-        value: sqlite:///./oncology_kol.db
+        sync: false
+      # Your Vercel deployment URL (e.g. https://oncology-kol.vercel.app)
       - key: CORS_ORIGINS
-        sync: false   # set this in Render dashboard to your Vercel URL
+        sync: false
+      # Groq API key — https://console.groq.com/keys
       - key: GROQ_API_KEY
-        sync: false   # set this in Render dashboard — never commit
+        sync: false
+      # NCBI API key (optional)
       - key: NCBI_API_KEY
-        sync: false   # optional
+        sync: false
     plan: free
