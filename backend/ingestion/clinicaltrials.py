@@ -208,13 +208,17 @@ async def run(dry_run: bool = False) -> None:
         studies = await fetch_studies(client)
 
     print(f"\nProcessing {len(studies)} studies...")
+    BATCH = 50
     db = SessionLocal()
     try:
         for i, study in enumerate(studies):
             process_study(db, study)
-            if (i + 1) % 50 == 0:
+
+            if (i + 1) % BATCH == 0:
                 if not dry_run:
                     db.commit()
+                    db.close()      # return connection to pool — avoid pooler idle timeout
+                    db = SessionLocal()
                 print(f"  Processed {i + 1}/{len(studies)}")
 
         if not dry_run:
