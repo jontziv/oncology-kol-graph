@@ -29,9 +29,6 @@ export function AccountPanel({ npi, onClose }: AccountPanelProps) {
       status: status as "To Engage" | "Engaged" | "Declined",
       notes,
       assigned_to: assignedTo,
-      id: "",
-      created_at: "",
-      updated_at: "",
     });
   };
 
