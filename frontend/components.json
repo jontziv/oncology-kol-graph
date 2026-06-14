@@ -1,0 +1,11 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "aliasPrefix": "@",
+  "resolvedPaths": {
+    "utils": "src/lib/utils",
+    "components": "src/components"
+  }
+}
