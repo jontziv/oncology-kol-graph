@@ -21,7 +21,7 @@ def build_full_graph(
     if state:
         query = query.filter(models.Investigator.state == state)
 
-    investigators = query.limit(300).all()  # cap for frontend perf
+    investigators = query.limit(100).all()  # cap for frontend perf — reduce for faster rendering
 
     nodes: list[GraphNode] = []
     links: list[GraphLink] = []
