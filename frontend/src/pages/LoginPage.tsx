@@ -12,6 +12,8 @@ export function LoginPage() {
   const { signUp, logIn } = useAuth();
   const navigate = useNavigate();
 
+  const supabaseConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -41,7 +43,22 @@ export function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {!supabaseConfigured && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-400 text-sm mb-4">
+              ⚠️ Supabase not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.
+            </div>
+          )}
+          <form
+            onSubmit={(e) => {
+              if (!supabaseConfigured) {
+                e.preventDefault();
+                setError('Supabase not configured. Check environment variables.');
+                return;
+              }
+              handleSubmit(e);
+            }}
+            className="space-y-4"
+          >
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Email
