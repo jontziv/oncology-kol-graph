@@ -21,7 +21,7 @@ def build_full_graph(
     if state:
         query = query.filter(models.Investigator.state == state)
 
-    investigators = query.limit(100).all()  # cap for frontend perf — reduce for faster rendering
+    investigators = query.order_by(models.Investigator.kol_score.desc()).limit(50).all()  # cap at 50 for instant render, sorted by score
 
     nodes: list[GraphNode] = []
     links: list[GraphLink] = []
