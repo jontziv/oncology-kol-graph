@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ExternalLink, MapPin, Building2 } from "lucide-react";
+import { X, ExternalLink, MapPin, Building2, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useKOL } from "@/api/kols";
 import { useEngagement, useSaveEngagement } from "@/api/engagements";
@@ -16,20 +16,31 @@ interface AccountPanelProps {
 
 export function AccountPanel({ npi, onClose }: AccountPanelProps) {
   const { data: kol, isLoading } = useKOL(npi);
-  const { data: engagement } = useEngagement(npi);
+  const { data: engagement, refetch } = useEngagement(npi);
   const { mutate: saveEngagement, isPending } = useSaveEngagement();
   const [status, setStatus] = useState<string>(engagement?.status || "To Engage");
   const [notes, setNotes] = useState(engagement?.notes || "");
   const [assignedTo, setAssignedTo] = useState(engagement?.assigned_to || "");
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const handleSave = () => {
+  const handleSubmit = async () => {
     if (!npi) return;
-    saveEngagement({
-      npi,
-      status: status as "To Engage" | "Engaged" | "Declined",
-      notes,
-      assigned_to: assignedTo,
-    });
+    setSaveSuccess(false);
+    saveEngagement(
+      {
+        npi,
+        status: status as "To Engage" | "Engaged" | "Declined",
+        notes,
+        assigned_to: assignedTo,
+      },
+      {
+        onSuccess: () => {
+          setSaveSuccess(true);
+          refetch();
+          setTimeout(() => setSaveSuccess(false), 3000);
+        },
+      }
+    );
   };
 
   return (
@@ -128,10 +139,7 @@ export function AccountPanel({ npi, onClose }: AccountPanelProps) {
                 <label className="text-xs text-slate-400 mb-1.5 block">Status</label>
                 <select
                   value={status}
-                  onChange={(e) => {
-                    setStatus(e.target.value);
-                    setTimeout(handleSave, 200);
-                  }}
+                  onChange={(e) => setStatus(e.target.value)}
                   className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-xs text-slate-100 focus:outline-none focus:border-sky-500"
                 >
                   <option>To Engage</option>
@@ -146,7 +154,6 @@ export function AccountPanel({ npi, onClose }: AccountPanelProps) {
                   type="text"
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
-                  onBlur={handleSave}
                   placeholder="Team member name"
                   className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500"
                 />
@@ -157,14 +164,36 @@ export function AccountPanel({ npi, onClose }: AccountPanelProps) {
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  onBlur={handleSave}
                   placeholder="Add notes about this KOL..."
                   rows={3}
                   className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 resize-none"
                 />
               </div>
 
-              {isPending && <p className="text-xs text-slate-500">Saving...</p>}
+              <button
+                onClick={handleSubmit}
+                disabled={isPending}
+                className={cn(
+                  "w-full py-2 rounded text-xs font-medium transition-all flex items-center justify-center gap-1.5",
+                  saveSuccess
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    : "bg-sky-600 hover:bg-sky-700 disabled:bg-slate-700 text-white border border-sky-600"
+                )}
+              >
+                {isPending ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : saveSuccess ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Saved
+                  </>
+                ) : (
+                  "Save Engagement"
+                )}
+              </button>
             </div>
 
             {/* Open full profile */}
