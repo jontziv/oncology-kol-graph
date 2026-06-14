@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine
 from app import models
-from app.routers import graph, kols, institutions, payments, disease_burden, explain
+from app.routers import graph, kols, institutions, payments, disease_burden, explain, engagements
 
 # Create all tables on startup (idempotent)
 models.Base.metadata.create_all(bind=engine)
@@ -31,6 +31,7 @@ app.include_router(institutions.router)
 app.include_router(payments.router)
 app.include_router(disease_burden.router)
 app.include_router(explain.router)
+app.include_router(engagements.router)
 
 
 @app.get("/health")

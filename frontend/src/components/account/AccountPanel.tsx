@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { X, ExternalLink, MapPin, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useKOL } from "@/api/kols";
+import { useEngagement, useSaveEngagement } from "@/api/engagements";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { ConflictBadge } from "@/components/shared/ConflictBadge";
 import { EngagementRationale } from "@/components/account/EngagementRationale";
@@ -14,6 +16,24 @@ interface AccountPanelProps {
 
 export function AccountPanel({ npi, onClose }: AccountPanelProps) {
   const { data: kol, isLoading } = useKOL(npi);
+  const { data: engagement } = useEngagement(npi);
+  const { mutate: saveEngagement, isPending } = useSaveEngagement();
+  const [status, setStatus] = useState<string>(engagement?.status || "To Engage");
+  const [notes, setNotes] = useState(engagement?.notes || "");
+  const [assignedTo, setAssignedTo] = useState(engagement?.assigned_to || "");
+
+  const handleSave = () => {
+    if (!npi) return;
+    saveEngagement({
+      npi,
+      status: status as "To Engage" | "Engaged" | "Declined",
+      notes,
+      assigned_to: assignedTo,
+      id: "",
+      created_at: "",
+      updated_at: "",
+    });
+  };
 
   return (
     <div
@@ -101,6 +121,53 @@ export function AccountPanel({ npi, onClose }: AccountPanelProps) {
                   <div className="text-xs text-slate-500">{label}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Engagement Tracking */}
+            <div className="bg-slate-800 rounded-lg p-3 space-y-3">
+              <div className="text-xs font-medium text-slate-400">Engagement Tracking</div>
+
+              <div>
+                <label className="text-xs text-slate-400 mb-1.5 block">Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => {
+                    setStatus(e.target.value);
+                    setTimeout(handleSave, 200);
+                  }}
+                  className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+                >
+                  <option>To Engage</option>
+                  <option>Engaged</option>
+                  <option>Declined</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 mb-1.5 block">Assigned To</label>
+                <input
+                  type="text"
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  onBlur={handleSave}
+                  placeholder="Team member name"
+                  className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 mb-1.5 block">Internal Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  onBlur={handleSave}
+                  placeholder="Add notes about this KOL..."
+                  rows={3}
+                  className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 resize-none"
+                />
+              </div>
+
+              {isPending && <p className="text-xs text-slate-500">Saving...</p>}
             </div>
 
             {/* Open full profile */}
