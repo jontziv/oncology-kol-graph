@@ -47,11 +47,16 @@ async function saveEngagement(
 
 export function useEngagement(npi: string | null) {
   const { session } = useAuth();
-  const userId = session?.user?.id || "";
+  const userId = session?.user?.id;
 
   return useQuery({
     queryKey: ["engagement", npi, userId],
-    queryFn: () => fetchEngagement(npi!, session?.access_token || "", userId),
+    queryFn: async () => {
+      if (!npi || !session?.access_token || !userId) {
+        return null;
+      }
+      return fetchEngagement(npi, session.access_token, userId);
+    },
     enabled: !!npi && !!session && !!userId,
     staleTime: 5 * 60 * 1000,
   });
@@ -60,11 +65,15 @@ export function useEngagement(npi: string | null) {
 export function useSaveEngagement() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const userId = session?.user?.id || "";
+  const userId = session?.user?.id;
 
   return useMutation({
-    mutationFn: ({ npi, status, notes, assigned_to }: Omit<Engagement, "id" | "created_at" | "updated_at">) =>
-      saveEngagement(npi, status, notes, assigned_to, session?.access_token || "", userId),
+    mutationFn: async ({ npi, status, notes, assigned_to }: Omit<Engagement, "id" | "created_at" | "updated_at">) => {
+      if (!session?.access_token || !userId) {
+        throw new Error("Not authenticated");
+      }
+      return saveEngagement(npi, status, notes, assigned_to, session.access_token, userId);
+    },
     onSuccess: (data) => {
       queryClient.setQueryData(["engagement", data.npi, userId], data);
     },
