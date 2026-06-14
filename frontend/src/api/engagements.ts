@@ -12,11 +12,11 @@ export interface Engagement {
   updated_at: string;
 }
 
-async function fetchEngagement(npi: string, userToken: string): Promise<Engagement | null> {
+async function fetchEngagement(npi: string, userToken: string, userId: string): Promise<Engagement | null> {
   const res = await fetch(`${API_BASE}/api/engagements/${npi}`, {
     headers: {
       Authorization: `Bearer ${userToken}`,
-      "X-User-ID": npi, // Placeholder — frontend will send actual user ID
+      "X-User-ID": userId,
     },
   });
   if (res.status === 404) return null;
@@ -29,14 +29,15 @@ async function saveEngagement(
   status: string,
   notes: string,
   assigned_to: string,
-  userToken: string
+  userToken: string,
+  userId: string
 ): Promise<Engagement> {
   const res = await fetch(`${API_BASE}/api/engagements`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${userToken}`,
-      "X-User-ID": npi,
+      "X-User-ID": userId,
     },
     body: JSON.stringify({ npi, status, notes, assigned_to }),
   });
@@ -46,11 +47,12 @@ async function saveEngagement(
 
 export function useEngagement(npi: string | null) {
   const { session } = useAuth();
+  const userId = session?.user?.id || "";
 
   return useQuery({
-    queryKey: ["engagement", npi],
-    queryFn: () => fetchEngagement(npi!, session?.access_token || ""),
-    enabled: !!npi && !!session,
+    queryKey: ["engagement", npi, userId],
+    queryFn: () => fetchEngagement(npi!, session?.access_token || "", userId),
+    enabled: !!npi && !!session && !!userId,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -58,12 +60,13 @@ export function useEngagement(npi: string | null) {
 export function useSaveEngagement() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const userId = session?.user?.id || "";
 
   return useMutation({
     mutationFn: ({ npi, status, notes, assigned_to }: Omit<Engagement, "id" | "created_at" | "updated_at">) =>
-      saveEngagement(npi, status, notes, assigned_to, session?.access_token || ""),
+      saveEngagement(npi, status, notes, assigned_to, session?.access_token || "", userId),
     onSuccess: (data) => {
-      queryClient.setQueryData(["engagement", data.npi], data);
+      queryClient.setQueryData(["engagement", data.npi, userId], data);
     },
   });
 }
