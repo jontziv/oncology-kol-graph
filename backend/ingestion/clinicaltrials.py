@@ -13,11 +13,13 @@ from datetime import date
 
 import httpx
 from sqlalchemy.orm import Session
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy import text
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app.database import SessionLocal, engine
 from app import models
+
+_is_sqlite = engine.dialect.name == "sqlite"
 
 BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 PAGE_SIZE = 100
@@ -56,34 +58,56 @@ def _extract_phase(phases: list | None) -> str | None:
 
 def _upsert_institution(db: Session, name: str, city: str | None, state: str | None) -> int:
     name = name.strip()
+    # Always query DB directly — identity map may be stale after session recycle
     existing = db.query(models.Institution).filter_by(name=name).first()
     if existing:
         return existing.id
-    inst = models.Institution(name=name, city=city, state=state)
-    db.add(inst)
+    if _is_sqlite:
+        inst = models.Institution(name=name, city=city, state=state)
+        db.add(inst)
+        db.flush()
+        return inst.id
+    # PostgreSQL: use ON CONFLICT DO NOTHING then re-fetch
+    db.execute(
+        text(
+            "INSERT INTO institutions (name, city, state, trial_count, kol_count) "
+            "VALUES (:name, :city, :state, 0, 0) ON CONFLICT (name) DO NOTHING"
+        ),
+        {"name": name, "city": city, "state": state},
+    )
     db.flush()
-    return inst.id
+    return db.query(models.Institution).filter_by(name=name).one().id
 
 
 def _upsert_investigator(
     db: Session, name: str, institution_id: int, city: str | None, state: str | None
 ) -> str:
-    # Institutions table gives us the institution name for NPI generation
-    inst = db.get(models.Institution, institution_id)
+    inst = db.query(models.Institution).filter_by(id=institution_id).first()
     inst_name = inst.name if inst else ""
     npi = _make_provisional_npi(name, inst_name)
     existing = db.query(models.Investigator).filter_by(npi=npi).first()
     if not existing:
-        inv = models.Investigator(
-            npi=npi,
-            name=name.strip(),
-            institution_id=institution_id,
-            city=city,
-            state=state,
-            npi_source="clinicaltrials_derived",
-        )
-        db.add(inv)
-        db.flush()
+        if _is_sqlite:
+            inv = models.Investigator(
+                npi=npi, name=name.strip(), institution_id=institution_id,
+                city=city, state=state, npi_source="clinicaltrials_derived",
+            )
+            db.add(inv)
+            db.flush()
+        else:
+            db.execute(
+                text(
+                    "INSERT INTO investigators "
+                    "(npi, name, institution_id, city, state, npi_source, "
+                    "kol_score, trial_score, pub_score, activity_score, "
+                    "geographic_reach, geographic_reach_score, payment_total_usd, payment_company_count) "
+                    "VALUES (:npi, :name, :iid, :city, :state, 'clinicaltrials_derived', "
+                    "0,0,0,0,0,0,0,0) ON CONFLICT (npi) DO NOTHING"
+                ),
+                {"npi": npi, "name": name.strip(), "iid": institution_id,
+                 "city": city, "state": state},
+            )
+            db.flush()
     return npi
 
 
@@ -137,24 +161,37 @@ def process_study(db: Session, study: dict) -> None:
     status = status_mod.get("overallStatus")
     enrollment_info = design_mod.get("enrollmentInfo", {})
 
-    existing_trial = db.get(models.Trial, nct_id)
-    if existing_trial:
-        existing_trial.status = status
+    title = id_mod.get("briefTitle")
+    condition = ", ".join(proto.get("conditionsModule", {}).get("conditions", []))
+    sponsor = sponsor_mod.get("leadSponsor", {}).get("name")
+    start_date = _parse_date(status_mod.get("startDateStruct", {}).get("date"))
+    completion_date = _parse_date(status_mod.get("primaryCompletionDateStruct", {}).get("date"))
+    enrollment = enrollment_info.get("count")
+
+    if _is_sqlite:
+        existing_trial = db.query(models.Trial).filter_by(nct_id=nct_id).first()
+        if existing_trial:
+            existing_trial.status = status
+        else:
+            db.add(models.Trial(
+                nct_id=nct_id, title=title, phase=phase, status=status,
+                condition=condition, sponsor=sponsor, start_date=start_date,
+                completion_date=completion_date, enrollment=enrollment,
+            ))
+            db.flush()
     else:
-        trial = models.Trial(
-            nct_id=nct_id,
-            title=id_mod.get("briefTitle"),
-            phase=phase,
-            status=status,
-            condition=", ".join(proto.get("conditionsModule", {}).get("conditions", [])),
-            sponsor=sponsor_mod.get("leadSponsor", {}).get("name"),
-            start_date=_parse_date(status_mod.get("startDateStruct", {}).get("date")),
-            completion_date=_parse_date(
-                status_mod.get("primaryCompletionDateStruct", {}).get("date")
+        db.execute(
+            text(
+                "INSERT INTO trials (nct_id, title, phase, status, condition, sponsor, "
+                "start_date, completion_date, enrollment) "
+                "VALUES (:nct_id, :title, :phase, :status, :condition, :sponsor, "
+                ":start_date, :completion_date, :enrollment) "
+                "ON CONFLICT (nct_id) DO UPDATE SET status = EXCLUDED.status"
             ),
-            enrollment=enrollment_info.get("count"),
+            {"nct_id": nct_id, "title": title, "phase": phase, "status": status,
+             "condition": condition, "sponsor": sponsor, "start_date": start_date,
+             "completion_date": completion_date, "enrollment": enrollment},
         )
-        db.add(trial)
         db.flush()
 
     # ── Locations → investigators ────────────────────────────────────────────
@@ -187,17 +224,24 @@ def process_study(db: Session, study: dict) -> None:
             seen_links.add(link_key)
 
             role_label = "Principal Investigator" if role_raw == "PRINCIPAL_INVESTIGATOR" else "Sub-Investigator"
-            existing_link = (
-                db.query(models.TrialInvestigator)
-                .filter_by(trial_nct_id=nct_id, investigator_npi=npi)
-                .first()
-            )
-            if not existing_link:
-                db.add(models.TrialInvestigator(
-                    trial_nct_id=nct_id,
-                    investigator_npi=npi,
-                    role=role_label,
-                ))
+            if _is_sqlite:
+                existing_link = (
+                    db.query(models.TrialInvestigator)
+                    .filter_by(trial_nct_id=nct_id, investigator_npi=npi)
+                    .first()
+                )
+                if not existing_link:
+                    db.add(models.TrialInvestigator(
+                        trial_nct_id=nct_id, investigator_npi=npi, role=role_label,
+                    ))
+            else:
+                db.execute(
+                    text(
+                        "INSERT INTO trial_investigators (trial_nct_id, investigator_npi, role) "
+                        "VALUES (:nct_id, :npi, :role) ON CONFLICT DO NOTHING"
+                    ),
+                    {"nct_id": nct_id, "npi": npi, "role": role_label},
+                )
 
 
 async def run(dry_run: bool = False) -> None:
