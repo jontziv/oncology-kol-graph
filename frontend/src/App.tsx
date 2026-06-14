@@ -1,4 +1,7 @@
 import { Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { LoginPage } from "@/pages/LoginPage";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { NetworkPage } from "@/pages/NetworkPage";
@@ -22,7 +25,7 @@ function DataAttribution() {
   );
 }
 
-export default function App() {
+function AppLayout() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -39,5 +42,23 @@ export default function App() {
         <DataAttribution />
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </AuthProvider>
   );
 }
