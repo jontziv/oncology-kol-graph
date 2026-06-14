@@ -131,8 +131,8 @@ export function AccountPanel({ npi, onClose }: AccountPanelProps) {
               ))}
             </div>
 
-            {/* Engagement Tracking */}
-            <div className="bg-slate-800 rounded-lg p-3 space-y-3">
+            {/* Engagement Tracking - key forces state reset when npi changes */}
+            <div key={npi} className="bg-slate-800 rounded-lg p-3 space-y-3">
               <div className="text-xs font-medium text-slate-400">Engagement Tracking</div>
 
               <div>
