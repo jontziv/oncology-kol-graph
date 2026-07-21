@@ -27,7 +27,7 @@ A compliant commercial/medical intelligence application demonstrating how a medi
 - **Frontend**: React 18 + Vite + TypeScript (strict) + Tailwind CSS
 - **Graph viz**: react-force-graph-2d (D3/WebGL)
 - **Map**: react-simple-maps + d3-scale-chromatic
-- **AI**: Groq API (free) — llama3-70b-8192
+- **AI**: Groq API (free) — llama-3.3-70b-versatile
 - **Data**: ClinicalTrials.gov, PubMed, CMS Open Payments, NCI SEER
 
 ---

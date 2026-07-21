@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """
 Groq API wrapper for generating compliant KOL engagement rationale.
-Model: llama3-70b-8192 (free tier). Falls back gracefully if key is missing.
+Model: llama-3.3-70b-versatile (free tier). Falls back gracefully if key is missing.
 """
 from datetime import date
 import json
@@ -97,7 +97,7 @@ def generate_rationale(
     try:
         client = Groq(api_key=settings.groq_api_key)
         response = client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
