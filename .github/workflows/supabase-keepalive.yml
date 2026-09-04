@@ -11,19 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Supabase Database
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         run: |
-          supabase_url="$SUPABASE_URL"
-          supabase_url="${supabase_url#\"}"
-          supabase_url="${supabase_url%\"}"
-          supabase_url="${supabase_url#\'}"
-          supabase_url="${supabase_url%\'}"
-          supabase_url="${supabase_url%/}"
-
-          if [ -z "$supabase_url" ]; then
-            echo "SUPABASE_URL secret is not set"
-            exit 1
-          fi
-
-          curl --fail --silent --show-error "$supabase_url/auth/v1/health"
+          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/institutions?select=id&limit=1" \
+          -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}"
